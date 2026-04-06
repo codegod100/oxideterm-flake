@@ -363,7 +363,7 @@
             src = tauriSrc + "/src-tauri";
             
             # IFD-free: use cargoHash instead of cargoLock
-            cargoHash = lib.fakeSha256;
+            cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
             
             nativeBuildInputs = commonNativeBuildInputs ++ [ nodejs pnpm ];
             buildInputs = commonBuildInputs;
