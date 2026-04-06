@@ -342,19 +342,19 @@
             
             # Prepare source with committed Cargo.lock (no IFD - just file copy)
             tauriSrc = pkgs.runCommand "oxideterm-tauri-src" {} ''
-              mkdir -p $out
-              cp -r ${frontend}/* $out/
-              chmod -R +w $out
-              
-              # Set up dist folder
               mkdir -p $out/dist
+              cp -r ${frontend}/* $out/
+              
+              # Copy frontend assets to dist (excluding src-tauri)
               for item in $out/*; do
-                if [ "$(basename $item)" != "src-tauri" ] && [ "$(basename $item)" != "dist" ]; then
-                  cp -r $item $out/dist/ 2>/dev/null || true
+                name=$(basename "$item")
+                if [ "$name" != "src-tauri" ] && [ "$name" != "dist" ] && [ -e "$item" ]; then
+                  cp -r "$item" $out/dist/ 2>/dev/null || true
                 fi
               done
               
-              # Use committed Cargo.lock instead of generating (IFD-free!)
+              # Ensure src-tauri is writable and use committed Cargo.lock
+              chmod -R +w $out/src-tauri
               cp ${./cargo-locks/tauri-Cargo.lock} $out/src-tauri/Cargo.lock
             '';
             
