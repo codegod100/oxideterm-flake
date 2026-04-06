@@ -228,19 +228,31 @@
           commonBuildInputs = tauriDeps ++ platformDeps;
           commonNativeBuildInputs = [ pkgs.pkg-config rustToolchain ];
           
-          # CLI package - IFD-free with committed Cargo.lock
-          oxide-cli = pkgs.rustPlatform.buildRustPackage {
+          # CLI package using crane (revert to working version)
+          oxide-cli = let
+            src = pkgs.stdenv.mkDerivation {
+              name = "oxide-cli-src-fixed";
+              
+              outputHashAlgo = "sha256";
+              outputHashMode = "recursive";
+              outputHash = "sha256-lWnuteye4gyjfaSBIraKtszlrc8COIMHeUd/YWuuluE=";
+              
+              nativeBuildInputs = [ rustToolchain pkgs.cargo pkgs.rustc pkgs.cacert ];
+              
+              buildCommand = ''
+                cp -r ${oxideterm-src}/cli $out
+                chmod -R +w $out
+                cd $out
+                cargo update
+              '';
+            };
+            
+            cargoVendor = craneLib.vendorCargoDeps { inherit src; };
+          in craneLib.buildPackage {
             pname = "oxide-cli";
             version = "1.1.0-beta.5";
             
-            src = oxideterm-src + "/cli";
-            
-            # Copy committed Cargo.lock (IFD-free - just a file)
-            postPatch = ''
-              cp ${./cargo-locks/cli-Cargo.lock} Cargo.lock
-            '';
-            
-            cargoHash = "sha256-YKi0pOvggjCERgl4RqHoy+fYFwnJMYzbKKH2YaEKafE=";
+            inherit src cargoVendor;
             
             nativeBuildInputs = commonNativeBuildInputs;
             buildInputs = commonBuildInputs;
@@ -255,18 +267,31 @@
             };
           };
           
-          # Agent package - IFD-free with committed Cargo.lock
-          oxideterm-agent = pkgs.rustPlatform.buildRustPackage {
+          # Agent package using crane (revert to working version)
+          oxideterm-agent = let
+            src = pkgs.stdenv.mkDerivation {
+              name = "oxideterm-agent-src-fixed";
+              
+              outputHashAlgo = "sha256";
+              outputHashMode = "recursive";
+              outputHash = "sha256-cnt4sHbqADT5JqUKfUQ+Xl8DKM1Dj8wQ3HqfekC3WeQ=";
+              
+              nativeBuildInputs = [ rustToolchain pkgs.cargo pkgs.rustc pkgs.cacert ];
+              
+              buildCommand = ''
+                cp -r ${oxideterm-src}/agent $out
+                chmod -R +w $out
+                cd $out
+                cargo update
+              '';
+            };
+            
+            cargoVendor = craneLib.vendorCargoDeps { inherit src; };
+          in craneLib.buildPackage {
             pname = "oxideterm-agent";
             version = "0.12.1";
             
-            src = oxideterm-src + "/agent";
-            
-            postPatch = ''
-              cp ${./cargo-locks/agent-Cargo.lock} Cargo.lock
-            '';
-            
-            cargoHash = "sha256-YKi0pOvggjCERgl4RqHoy+fYFwnJMYzbKKH2YaEKafE=";
+            inherit src cargoVendor;
             
             nativeBuildInputs = commonNativeBuildInputs;
             buildInputs = commonBuildInputs;
