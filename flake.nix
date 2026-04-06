@@ -362,8 +362,7 @@
             pname = "oxideterm";
             version = "1.1.0-beta.5";
             
-            src = tauriSrc;
-            sourceRoot = "src-tauri";
+            src = tauriSrc + "/src-tauri";
             cargoVendorDir = null;
             
             nativeBuildInputs = commonNativeBuildInputs ++ [ nodejs pnpm ];
