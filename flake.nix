@@ -228,9 +228,8 @@
           commonBuildInputs = tauriDeps ++ platformDeps;
           commonNativeBuildInputs = [ pkgs.pkg-config rustToolchain ];
           
-          # CLI package using crane with updated Cargo.lock
+          # CLI package using crane
           oxide-cli = let
-            # Update Cargo.lock using fixed-output derivation (allows network)
             src = pkgs.stdenv.mkDerivation {
               name = "oxide-cli-src-fixed";
               
@@ -241,11 +240,9 @@
               nativeBuildInputs = [ rustToolchain pkgs.cargo pkgs.rustc pkgs.cacert ];
               
               buildCommand = ''
-                # Copy to writable location
                 cp -r ${oxideterm-src}/cli $out
                 chmod -R +w $out
                 cd $out
-                # Update dependencies to resolve version mismatches
                 cargo update
               '';
             };
@@ -309,12 +306,12 @@
             };
           };
           
-          # Full Tauri app - build frontend then Rust backend
+          # Full Tauri app - IFD-free with committed Cargo.lock
           oxideterm = let
             nodejs = pkgs.nodejs_22;
             pnpm = pkgs.pnpm;
             
-            # Step 1: Build frontend with pnpm (fixed-output for network access)
+            # Build frontend (FOD for network, but doesn't cause IFD in main build)
             frontend = pkgs.stdenv.mkDerivation {
               name = "oxideterm-frontend";
               
@@ -325,75 +322,52 @@
               nativeBuildInputs = [ nodejs pnpm pkgs.cacert ];
               
               buildCommand = ''
-                # Copy source
                 cp -r ${oxideterm-src} source
                 chmod -R +w source
                 cd source
                 
-                # Setup pnpm
                 export HOME=$TMPDIR
                 export PNPM_HOME=$TMPDIR/.pnpm
                 export PATH="$PNPM_HOME:$PATH"
                 pnpm config set store-dir $TMPDIR/pnpm-store
                 
-                # Install and build
                 pnpm install --frozen-lockfile
                 pnpm build
                 
-                # Copy built frontend to output
                 mkdir -p $out
                 cp -r dist/* $out/ 2>/dev/null || cp -r build/* $out/ 2>/dev/null || true
-                
-                # Also need the src-tauri directory for Rust build
                 cp -r src-tauri $out/
               '';
             };
             
-            # Step 2: Fix src-tauri Cargo.lock and set up dist folder
-            tauriSrc = pkgs.stdenv.mkDerivation {
-              name = "oxideterm-tauri-src";
+            # Prepare source with committed Cargo.lock (no IFD - just file copy)
+            tauriSrc = pkgs.runCommand "oxideterm-tauri-src" {} ''
+              mkdir -p $out
+              cp -r ${frontend}/* $out/
+              chmod -R +w $out
               
-              outputHashAlgo = "sha256";
-              outputHashMode = "recursive";
-              outputHash = "sha256-3Rez93usU797qm1ZngsJ1kxN1hS+mxsApwlT0y3iyD0=";
+              # Set up dist folder
+              mkdir -p $out/dist
+              for item in $out/*; do
+                if [ "$(basename $item)" != "src-tauri" ] && [ "$(basename $item)" != "dist" ]; then
+                  cp -r $item $out/dist/ 2>/dev/null || true
+                fi
+              done
               
-              nativeBuildInputs = [ rustToolchain pkgs.cargo pkgs.rustc pkgs.cacert ];
-              
-              buildCommand = ''
-                mkdir -p $out
-                cp -r ${frontend}/* $out/
-                chmod -R +w $out
-                
-                # Set up dist folder
-                mkdir -p $out/dist
-                for item in $out/*; do
-                  if [ "$(basename $item)" != "src-tauri" ] && [ "$(basename $item)" != "dist" ]; then
-                    cp -r $item $out/dist/ 2>/dev/null || true
-                  fi
-                done
-                
-                # Update Cargo.lock in src-tauri
-                cd $out/src-tauri
-                cargo update
-              '';
-            };
+              # Use committed Cargo.lock instead of generating (IFD-free!)
+              cp ${./cargo-locks/tauri-Cargo.lock} $out/src-tauri/Cargo.lock
+            '';
             
-            cargoVendor = craneLib.vendorCargoDeps { 
-              cargoLock = "${tauriSrc}/src-tauri/Cargo.lock";
-            };
           in craneLib.buildPackage {
             pname = "oxideterm";
             version = "1.1.0-beta.5";
             
-            src = tauriSrc + "/src-tauri";
-            
-            # Don't use separate cargo artifacts to avoid path issues
-            cargoArtifacts = null;
+            src = tauriSrc;
+            sourceRoot = "src-tauri";
+            cargoVendorDir = null;
             
             nativeBuildInputs = commonNativeBuildInputs ++ [ nodejs pnpm ];
             buildInputs = commonBuildInputs;
-            
-            cargoBuildFlags = "";
             
             doCheck = false;
             
