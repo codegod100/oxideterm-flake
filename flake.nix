@@ -306,12 +306,12 @@
             };
           };
           
-          # Full Tauri app - IFD-free with committed Cargo.lock
+          # Full Tauri app - IFD-free using rustPlatform
           oxideterm = let
             nodejs = pkgs.nodejs_22;
             pnpm = pkgs.pnpm;
             
-            # Build frontend (FOD for network, but doesn't cause IFD in main build)
+            # Build frontend (FOD - but isolated, doesn't cause IFD in Rust build)
             frontend = pkgs.stdenv.mkDerivation {
               name = "oxideterm-frontend";
               
@@ -340,12 +340,11 @@
               '';
             };
             
-            # Prepare source with committed Cargo.lock (no IFD - just file copy)
+            # Prepare source - IFD-free!
             tauriSrc = pkgs.runCommand "oxideterm-tauri-src" {} ''
               mkdir -p $out/dist
               cp -r ${frontend}/* $out/
               
-              # Copy frontend assets to dist (excluding src-tauri)
               for item in $out/*; do
                 name=$(basename "$item")
                 if [ "$name" != "src-tauri" ] && [ "$name" != "dist" ] && [ -e "$item" ]; then
@@ -353,22 +352,35 @@
                 fi
               done
               
-              # Ensure src-tauri is writable and use committed Cargo.lock
               chmod -R +w $out/src-tauri
               cp ${./cargo-locks/tauri-Cargo.lock} $out/src-tauri/Cargo.lock
             '';
             
-          in craneLib.buildPackage {
+          in pkgs.rustPlatform.buildRustPackage {
             pname = "oxideterm";
             version = "1.1.0-beta.5";
             
             src = tauriSrc + "/src-tauri";
-            cargoVendorDir = null;
+            
+            # IFD-free: use cargoHash instead of cargoLock
+            cargoHash = lib.fakeSha256;
             
             nativeBuildInputs = commonNativeBuildInputs ++ [ nodejs pnpm ];
             buildInputs = commonBuildInputs;
             
+            # Disable check phase (needs display)
             doCheck = false;
+            
+            # Tauri-specific build
+            buildPhase = ''
+              export HOME=$TMPDIR
+              cargo build --release --offline
+            '';
+            
+            installPhase = ''
+              mkdir -p $out/bin
+              cp target/release/oxideterm $out/bin/
+            '';
             
             meta = with pkgs.lib; {
               description = "A modern SSH terminal client built with Rust and Tauri";
