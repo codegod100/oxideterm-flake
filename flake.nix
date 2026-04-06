@@ -8,7 +8,7 @@
     ];
     trusted-public-keys = [
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-      "codegod100.cachix.org-1:cyI7b9ZTS4Q6UfGM//NYq5KsKenzS3jT6OxCjVRb5k="
+      "codegod100.cachix.org-1:LZFL5VrR644WUjleS3bLbVeOdzlXqzKznQWvD5MVthA="
     ];
   };
 
