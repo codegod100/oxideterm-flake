@@ -240,7 +240,7 @@
               cp ${./cargo-locks/cli-Cargo.lock} Cargo.lock
             '';
             
-            cargoHash = "sha256-YKi0pOvggjCERgl4RqHoy+fYFwnJMYzbKKH2YaEKafE=";
+            cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
             
             nativeBuildInputs = commonNativeBuildInputs;
             buildInputs = commonBuildInputs;
