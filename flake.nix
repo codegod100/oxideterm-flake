@@ -240,7 +240,7 @@
               cp ${./cargo-locks/cli-Cargo.lock} Cargo.lock
             '';
             
-            cargoHash = "sha256-YKi0pOvggjCERgl4RqHoy+fYFwnJMYzbKKH2YaEKafE=";
+            cargoHash = "sha256-YKi0pOvggjCERgl4RqHoy+fYFwnJMYzbKKH2YaEKafE=";  
             
             nativeBuildInputs = commonNativeBuildInputs;
             buildInputs = commonBuildInputs;
@@ -266,7 +266,7 @@
               cp ${./cargo-locks/agent-Cargo.lock} Cargo.lock
             '';
             
-            cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+            cargoHash = "sha256-YKi0pOvggjCERgl4RqHoy+fYFwnJMYzbKKH2YaEKafE=";  
             
             nativeBuildInputs = commonNativeBuildInputs;
             buildInputs = commonBuildInputs;
